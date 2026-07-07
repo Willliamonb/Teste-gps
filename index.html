@@ -2,55 +2,115 @@
 <html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Teste GPS em Tempo Real</title>
 
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
 
-   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBK4FPzPkMoj22PiZUyDLrCjoEaFg1DWKk&callback=iniciarGPS"
-    async
-    defer>
-</script>
+<title>Entrega Inteligente GPS</title>
 
-    <script src="script.js" defer></script>
+<link rel="stylesheet" href="style.css">
+
+
+<link 
+rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"
+/>
 
 </head>
 
+
 <body>
 
-    <header>
 
-        <h1>🚚 Rastreamento em Tempo Real</h1>
+<header>
 
-    </header>
+<h1>🚚 Entrega Inteligente</h1>
 
-    <main>
+</header>
 
-        <div id="map"></div>
 
-        <section class="painel">
 
-            <h2>Informações</h2>
+<div class="controle">
 
-            <p>Latitude</p>
-            <span id="lat">-</span>
+<input 
+id="endereco"
+placeholder="Digite o endereço do cliente"
+/>
 
-            <p>Longitude</p>
-            <span id="lng">-</span>
 
-            <p>Velocidade</p>
-            <span id="vel">0 km/h</span>
+<button onclick="buscarEndereco()">
+Calcular Rota
+</button>
 
-            <p>Distância Percorrida</p>
-            <span id="dist">0 m</span>
 
-            <p>Precisão</p>
-            <span id="prec">-</span>
+</div>
 
-        </section>
 
-    </main>
+
+
+<div id="map"></div>
+
+
+
+
+<section class="painel">
+
+
+<h2>Status da entrega</h2>
+
+
+<p>Destino:</p>
+
+<span id="destino">
+Nenhum
+</span>
+
+
+
+<p>Latitude:</p>
+
+<span id="lat">
+-
+</span>
+
+
+
+<p>Longitude:</p>
+
+<span id="lng">
+-
+</span>
+
+
+
+<p>Velocidade:</p>
+
+<span id="vel">
+0 km/h
+</span>
+
+
+
+<p>Distância:</p>
+
+<span id="dist">
+-
+</span>
+
+
+
+</section>
+
+
+
+
+
+<script 
+src="https://unpkg.com/leaflet/dist/leaflet.js">
+</script>
+
+
+<script src="script.js"></script>
+
 
 </body>
 
