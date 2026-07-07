@@ -1,146 +1,329 @@
-let map;
-let marker;
-let polyline;
+let mapa;
 
-let path = [];
+let marcadorEntregador;
+
+let marcadorDestino;
+
+let rota;
+
+let destino = [
+    -23.561414,
+    -46.655881
+];
+// exemplo: São Paulo
+
+
 let ultimaPosicao = null;
-let distanciaTotal = 0;
 
-function iniciarGPS() {
-    if (!navigator.geolocation) {
-        alert("Seu navegador não suporta Geolocalização.");
-        return;
-    }
 
-    navigator.geolocation.watchPosition(
-        atualizarPosicao,
-        erro,
-        {
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000
-        }
-    );
+
+// cria mapa
+
+mapa = L.map("map")
+.setView(destino,15);
+
+
+
+L.tileLayer(
+"https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+{
+
+attribution:
+"© OpenStreetMap"
+
+}
+).addTo(mapa);
+
+
+
+// marcador cliente
+
+marcadorDestino =
+L.marker(destino)
+.addTo(mapa)
+.bindPopup(
+"🏠 Cliente"
+);
+
+
+
+// inicia GPS
+
+navigator.geolocation.watchPosition(
+
+(pos)=>{
+
+
+let lat =
+pos.coords.latitude;
+
+
+let lng =
+pos.coords.longitude;
+
+
+
+let atual=[
+lat,
+lng
+];
+
+
+
+document.getElementById("lat")
+.innerHTML =
+lat.toFixed(6);
+
+
+
+document.getElementById("lng")
+.innerHTML =
+lng.toFixed(6);
+
+
+
+let velocidade =
+pos.coords.speed
+?
+(pos.coords.speed*3.6).toFixed(1)
+:
+0;
+
+
+
+document.getElementById("vel")
+.innerHTML =
+velocidade+" km/h";
+
+
+
+
+// cria marcador entregador
+
+if(!marcadorEntregador){
+
+
+marcadorEntregador =
+L.marker(atual)
+.addTo(mapa)
+.bindPopup(
+"🚚 Você"
+);
+
+
+mapa.setView(
+atual,
+17
+);
+
+
+calcularRota(atual,destino);
+
+
+}
+else{
+
+
+marcadorEntregador
+.setLatLng(atual);
+
+
+
 }
 
-function atualizarPosicao(pos) {
 
-    const latitude = pos.coords.latitude;
-    const longitude = pos.coords.longitude;
 
-    const velocidade = pos.coords.speed
-        ? (pos.coords.speed * 3.6).toFixed(1)
-        : "0.0";
+// recalcula rota
 
-    const precisao = pos.coords.accuracy;
+calcularRota(
+atual,
+destino
+);
 
-    document.getElementById("lat").textContent = latitude.toFixed(6);
-    document.getElementById("lng").textContent = longitude.toFixed(6);
-    document.getElementById("vel").textContent = velocidade + " km/h";
-    document.getElementById("prec").textContent = precisao.toFixed(1) + " metros";
 
-    const atual = new google.maps.LatLng(latitude, longitude);
 
-    if (!map) {
+// calcula distância
 
-        map = new google.maps.Map(document.getElementById("map"), {
-            center: atual,
-            zoom: 18,
-            mapTypeId: "roadmap",
-            streetViewControl: false,
-            fullscreenControl: true,
-            mapTypeControl: true
-        });
+let distancia =
+calcularDistancia(
 
-        marker = new google.maps.Marker({
-            position: atual,
-            map: map,
-            title: "Minha localização",
-            icon: {
-                url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-            }
-        });
+lat,
+lng,
 
-        path = [atual];
+destino[0],
+destino[1]
 
-        polyline = new google.maps.Polyline({
-            path: path,
-            geodesic: true,
-            strokeColor: "#2196F3",
-            strokeOpacity: 1,
-            strokeWeight: 5
-        });
+);
 
-        polyline.setMap(map);
 
-    } else {
 
-        marker.setPosition(atual);
-        map.panTo(atual);
+document.getElementById("dist")
+.innerHTML =
 
-        path.push(atual);
-        polyline.setPath(path);
-    }
+distancia < 1000
 
-    if (ultimaPosicao) {
+?
 
-        distanciaTotal += calcularDistancia(
-            ultimaPosicao.lat(),
-            ultimaPosicao.lng(),
-            latitude,
-            longitude
-        );
-    }
+distancia.toFixed(0)+" metros"
 
-    ultimaPosicao = atual;
+:
 
-    if (distanciaTotal < 1000) {
-        document.getElementById("dist").textContent =
-            distanciaTotal.toFixed(1) + " metros";
-    } else {
-        document.getElementById("dist").textContent =
-            (distanciaTotal / 1000).toFixed(2) + " km";
-    }
+(distancia/1000).toFixed(2)+" km";
+
+
+
+},
+
+(err)=>{
+
+alert(
+"Erro GPS: "+err.message
+);
+
+},
+
+{
+
+enableHighAccuracy:true,
+
+maximumAge:0,
+
+timeout:10000
+
 }
 
-function erro(e) {
+);
 
-    console.error(e);
 
-    switch (e.code) {
 
-        case e.PERMISSION_DENIED:
-            alert("Permissão para acessar a localização foi negada.");
-            break;
 
-        case e.POSITION_UNAVAILABLE:
-            alert("Não foi possível obter sua localização.");
-            break;
 
-        case e.TIMEOUT:
-            alert("Tempo de espera pela localização excedido.");
-            break;
+function calcularRota(origem,destino){
 
-        default:
-            alert("Ocorreu um erro ao acessar a localização.");
-            break;
-    }
+
+let url =
+
+`https://router.project-osrm.org/route/v1/driving/${
+
+origem[1]
+
+},
+
+${origem[0]};
+
+${
+
+destino[1]
+
+},
+
+${destino[0]
+
+}?overview=full&geometries=geojson`;
+
+
+
+fetch(url)
+
+.then(res=>res.json())
+
+.then(data=>{
+
+
+let pontos =
+
+data.routes[0]
+.geometry
+.coordinates
+.map(
+(p)=>[
+p[1],
+p[0]
+]
+);
+
+
+
+if(rota){
+
+mapa.removeLayer(rota);
+
 }
 
-function calcularDistancia(lat1, lon1, lat2, lon2) {
 
-    const R = 6371000;
 
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
+rota =
+L.polyline(
+pontos,
+{
 
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) *
-        Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+color:"blue",
 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+weight:5
 
-    return R * c;
+}
+
+)
+.addTo(mapa);
+
+
+
+});
+
+
+}
+
+
+
+
+
+function calcularDistancia(
+
+lat1,
+
+lon1,
+
+lat2,
+
+lon2
+
+){
+
+
+const R=6371000;
+
+
+const dLat=
+(lat2-lat1)
+*Math.PI/180;
+
+
+const dLon=
+(lon2-lon1)
+*Math.PI/180;
+
+
+
+const a=
+
+Math.sin(dLat/2)**2+
+
+Math.cos(lat1*Math.PI/180)*
+
+Math.cos(lat2*Math.PI/180)*
+
+Math.sin(dLon/2)**2;
+
+
+
+return R*
+
+2*
+
+Math.atan2(
+Math.sqrt(a),
+Math.sqrt(1-a)
+);
+
+
 }
