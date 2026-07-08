@@ -424,3 +424,36 @@ distancia.toFixed(0)+" metros"
 
 
 }
+
+document
+.getElementById("minhaLocalizacao")
+.addEventListener(
+"click",
+()=>{
+
+
+    if(minhaPosicao){
+
+        mapa.setView(
+            minhaPosicao,
+            18,
+            {
+                animate:true
+            }
+        );
+
+
+        entregador.openPopup();
+
+
+    }
+    else{
+
+        alert(
+            "Aguardando localização..."
+        );
+
+    }
+
+
+});

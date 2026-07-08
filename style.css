@@ -176,13 +176,49 @@ button:hover {
 
     #map {
 
-        height:55vh;
+        height:45vh;
 
     }
 
 
 }
 
+#minhaLocalizacao {
+
+    position: absolute;
+
+    right: 20px;
+
+    top: 140px;
+
+    z-index: 1000;
+
+    background: white;
+
+    color: #2196F3;
+
+    border: none;
+
+    border-radius: 50%;
+
+    width: 55px;
+
+    height: 55px;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+
+}
+
+
+#minhaLocalizacao:hover {
+
+    background:#f0f0f0;
+
+}
 
 
 /* =========================
@@ -254,5 +290,15 @@ button {
 
 }
 
+
+}
+
+@media(max-width:768px){
+
+#map {
+
+    height:45vh;
+
+}
 
 }
