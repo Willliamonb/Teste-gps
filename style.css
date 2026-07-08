@@ -150,39 +150,6 @@ button:hover {
 
 }
 
-
-
-/* =========================
-   TABLET
-========================= */
-
-
-@media(max-width:768px){
-
-
-    .controle {
-
-        flex-direction: column;
-
-    }
-
-
-    button {
-
-        width:100%;
-
-    }
-
-
-    #map {
-
-        height:45vh;
-
-    }
-
-
-}
-
 #minhaLocalizacao {
 
     position: absolute;
@@ -225,6 +192,37 @@ button:hover {
 #minhaLocalizacao:hover {
 
     background: #f5f5f5;
+
+}
+
+/* =========================
+   TABLET
+========================= */
+
+
+@media(max-width:768px){
+
+
+    .controle {
+
+        flex-direction: column;
+
+    }
+
+
+    button {
+
+        width:100%;
+
+    }
+
+
+    #map {
+
+        height:45vh;
+
+    }
+
 
 }
 
