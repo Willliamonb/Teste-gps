@@ -1,243 +1,478 @@
+:root {
+  --primary: #7c3aed;
+  --primary-light: #ede9fe;
+  --primary-dark: #6d28d9;
+  --bg-main: #f3f0f8;
+  --surface: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --success: #10b981;
+}
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-
-html,
-body {
-
-    width:100%;
-    height:100%;
-
-    font-family: Arial, Helvetica, sans-serif;
-
-    background:#f5f5f5;
-
-    overflow:hidden;
-
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg-main);
+  color: var(--text-main);
+  overflow: hidden;
 }
-
 
 /* HEADER */
-
-header {
-
-    height:55px;
-
-    background:#2196F3;
-
-    color:white;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
+.app-header {
+  height: 64px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+  position: relative;
 }
 
-
-header h1 {
-
-    font-size:22px;
-
+.header-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
 }
 
-
-
-/* BUSCA */
-
-.controle {
-
-    height:55px;
-
-    background:white;
-
-    padding:8px;
-
-    display:flex;
-
-    gap:8px;
-
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-
-
-input {
-
-    flex:1;
-
-    border:1px solid #ccc;
-
-    border-radius:6px;
-
-    padding:10px;
-
+.search-box {
+  background: #f1f5f9;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  padding: 6px 14px;
+  width: 320px;
+  gap: 10px;
 }
 
-
-
-button {
-
-    border:none;
-
-    border-radius:6px;
-
-    background:#2196F3;
-
-    color:white;
-
-    padding:0 15px;
-
+.search-icon {
+  color: var(--text-muted);
+  font-size: 14px;
 }
 
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-main);
+  font-family: inherit;
+}
 
+.btn-buscar {
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
 
-/* MAPA */
+.btn-buscar:hover {
+  background: var(--primary-dark);
+}
+
+.icon-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.icon-btn .badge {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  width: 7px;
+  height: 7px;
+  background: #ef4444;
+  border-radius: 50%;
+  border: 1.5px solid white;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding-left: 8px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.arrow {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* LAYOUT PRINCIPAL */
+.dashboard-container {
+  display: flex;
+  height: calc(100vh - 64px);
+  width: 100%;
+}
+
+.map-section {
+  flex: 1;
+  position: relative;
+  background: #e5e7eb;
+}
 
 #map {
-
-    width:100%;
-
-    height:45vh;
-
+  width: 100%;
+  height: 100%;
 }
 
+/* CARDS NO MAPA */
+.eta-card {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 14px 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  border: 1px solid rgba(255,255,255,0.8);
+}
 
+.eta-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
 
-/* BOTÃO LOCALIZAÇÃO */
+.eta-time {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-top: 2px;
+}
 
 #minhaLocalizacao {
-
-
-    position:absolute;
-
-    right:15px;
-
-    top:125px;
-
-
-    z-index:1000;
-
-
-    width:40px;
-
-    height:40px;
-
-
-    border-radius:50%;
-
-
-    background:white;
-
-
-    color:#2196F3;
-
-
-    font-size:18px;
-
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-
-    box-shadow:0 2px 8px #999;
-
-
-    padding:0;
-
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  color: var(--primary);
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
 }
 
-
-
-/* PAINEL */
-
-.painel {
-
-
-    background:white;
-
-    padding:15px;
-
-    height:45vh;
-
-    overflow:auto;
-
+#minhaLocalizacao:hover {
+  transform: scale(1.05);
+  background: #f8fafc;
 }
 
-
-
-.painel h2 {
-
-    font-size:18px;
-
-    margin-bottom:10px;
-
+/* PAINEL LATERAL */
+.sidebar-details {
+  width: 380px;
+  background: var(--surface);
+  border-left: 1px solid var(--border-color);
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-
-
-.painel p {
-
-    margin-top:10px;
-
-    font-size:14px;
-
-    font-weight:bold;
-
+.badge-express {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
-
-
-.painel span {
-
-
-    display:block;
-
-    color:#2196F3;
-
-    font-size:16px;
-
-
+.order-id {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 4px;
 }
 
-
-
-
-@media(max-width:480px){
-
-
-header h1 {
-
-    font-size:18px;
-
+.order-meta {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 2px;
 }
 
-
-.controle {
-
-    height:60px;
-
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 18px 0;
 }
 
-
-#map {
-
-    height:38vh;
-
+/* DRIVER CARD */
+.driver-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #f1f5f9;
 }
 
-
-.painel {
-
-    height:42vh;
-
+.driver-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
+.driver-photo {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
+.driver-info {
+  flex: 1;
+}
+
+.driver-info h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.driver-info p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.star-icon {
+  color: #f59e0b;
+}
+
+.driver-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.action-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.vehicle-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.v-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.v-model {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plate-tag {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* TELEMETRIA DA ROTA */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.t-item span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.t-item strong {
+  font-size: 12px;
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+/* TIMELINE DE STATUS */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-left: 6px;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  gap: 14px;
+}
+
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 16px;
+  bottom: -22px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timeline-step:last-child::before {
+  display: none;
+}
+
+.timeline-step .marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-top: 4px;
+  z-index: 1;
+}
+
+.timeline-step.completed .marker {
+  background: var(--success);
+}
+
+.timeline-step.active .marker {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.timeline-step.completed::before {
+  background: var(--success);
+}
+
+.timeline-step .content {
+  flex: 1;
+}
+
+.timeline-step .content h4 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.timeline-step .content p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.timeline-step .time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* POPUPS CUSTOMIZADOS DO MAPA */
+.custom-pin {
+  background: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pin-driver {
+  background: var(--primary);
+  color: white;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+  .dashboard-container {
+    flex-direction: column;
+    height: auto;
+  }
+  .map-section {
+    height: 50vh;
+  }
+  .sidebar-details {
+    width: 100%;
+  }
+  .search-box {
+    width: 200px;
+  }
 }
