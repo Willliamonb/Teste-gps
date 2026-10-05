@@ -1,67 +1,56 @@
 let mapa;
-let entregador;
-let cliente;
-let rota;
-let minhaPosicao;
-let destino = null;
-let ultimaPosicaoRota = null; // Evita requisições repetidas ao OSRM no mesmo ponto
+let vanMarker;
+let markers = [];
+let rotaLayer;
+let minhaPosicao = null;
 
-// Ícones Customizados no formato da interface
-function criarIconeTexto(texto, icone, ehEntregador = false) {
-  const classe = ehEntregador ? 'custom-pin pin-driver' : 'custom-pin';
+// Ícone Customizado para o Mapa
+function criarIconeTexto(texto, icone, ehVan = false) {
+  const classe = ehVan ? 'custom-pin pin-driver' : 'custom-pin';
   return L.divIcon({
     className: '',
     html: `<div class="${classe}">
              <i class="${icone}"></i>
              <span>${texto}</span>
            </div>`,
-    iconAnchor: [50, 15]
+    iconAnchor: [30, 15]
   });
 }
 
 // INICIALIZAR O MAPA LEAFLET
 mapa = L.map("map", { zoomControl: false }).setView([-23.5505, -46.6333], 13);
 
-// Adiciona controles do Leaflet no canto superior direito
 L.control.zoom({ position: 'topright' }).addTo(mapa);
 
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
+// Substitua o L.tileLayer atual por este no script.js:
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "© OpenStreetMap contributors"
 }).addTo(mapa);
 
-// GEOLOCALIZAÇÃO DO ENTREGADOR (REAL-TIME)
+// GEOLOCALIZAÇÃO DA VAN (REAL-TIME)
 navigator.geolocation.watchPosition(
   (pos) => {
     let lat = pos.coords.latitude;
     let lng = pos.coords.longitude;
     minhaPosicao = [lat, lng];
 
-    // Atualiza telemetria na barra lateral
+    // Telemetria
     document.getElementById("coords").innerHTML = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-
     let velocidade = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : 0;
     document.getElementById("vel").innerHTML = velocidade + " km/h";
 
-    if (!entregador) {
-      entregador = L.marker(minhaPosicao, {
-        icon: criarIconeTexto("Carlos (A caminho)", "fa-solid fa-truck", true)
+    if (!vanMarker) {
+      vanMarker = L.marker(minhaPosicao, {
+        icon: criarIconeTexto("Sua Van Escolar", "fa-solid fa-van-shuttle", true)
       }).addTo(mapa);
-
-      mapa.setView(minhaPosicao, 15);
+      mapa.setView(minhaPosicao, 14);
     } else {
-      entregador.setLatLng(minhaPosicao);
-    }
-
-    // Recalcula rota apenas se mudou de posição significativa
-    if (destino) {
-      if (!ultimaPosicaoRota || Math.abs(ultimaPosicaoRota[0] - lat) > 0.0001 || Math.abs(ultimaPosicaoRota[1] - lng) > 0.0001) {
-        calcularRota(minhaPosicao, destino);
-        ultimaPosicaoRota = minhaPosicao;
-      }
+      vanMarker.setLatLng(minhaPosicao);
     }
   },
   (err) => {
-    console.warn("Erro GPS: " + err.message);
+    console.warn("Erro no GPS da Van: " + err.message);
   },
   {
     enableHighAccuracy: true,
@@ -70,129 +59,156 @@ navigator.geolocation.watchPosition(
   }
 );
 
-// BOTAO ENTER NA BUSCA
-function handleKeyPress(e) {
-  if (e.key === 'Enter') {
-    buscarEndereco();
+// CONSULTA DE COORDENADAS VIA NOMINATIM
+async function geocode(endereco) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'VanEscolarRotaApp/1.0' }
+  });
+  if (!res.ok) throw new Error("Erro de comunicação com servidor de endereços.");
+  const data = await res.json();
+  if (data && data.length > 0) {
+    return {
+      lat: parseFloat(data[0].lat),
+      lng: parseFloat(data[0].lon),
+      displayName: data[0].display_name.split(',')[0]
+    };
   }
+  throw new Error(`Endereço não encontrado: "${endereco}"`);
 }
 
-// BUSCAR ENDEREÇO VIA NOMINATIM (Com User-Agent para resolver o erro 'API required')
-function buscarEndereco() {
-  let endereco = document.getElementById("endereco").value;
+// LIMPAR ELEMENTOS DO MAPA
+function limparMapa() {
+  if (rotaLayer) mapa.removeLayer(rotaLayer);
+  markers.forEach(m => mapa.removeLayer(m));
+  markers = [];
+}
 
-  if (!endereco) {
-    alert("Digite um endereço para buscar");
+// PROCESSAR ROTA INTELIGENTE (OSRM TRIP API - TSP)
+async function processarRotaInteligente() {
+  const btn = document.getElementById("btnCalcular");
+  const timeline = document.getElementById("timelineParadas");
+  
+  const inputs = Array.from(document.querySelectorAll(".input-endereco"));
+  const enderecosText = inputs.map(i => i.value.trim()).filter(v => v !== "");
+
+  if (enderecosText.length < 2) {
+    alert("Preencha pelo menos o Ponto de Partida e um Endereço para otimizar.");
     return;
   }
 
-  document.getElementById("destino").innerHTML = "Buscando...";
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Geocodificando...`;
 
-  let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`;
+  limparMapa();
 
-  fetch(url, {
-    headers: {
-      'User-Agent': 'EntregaInteligenteApp/1.0'
+  try {
+    // 1. Converter endereços em coordenadas
+    const localizacoes = [];
+    for (let end of enderecosText) {
+      const loc = await geocode(end);
+      localizacoes.push(loc);
     }
-  })
-    .then(res => {
-      if (!res.ok) throw new Error("Erro na resposta da API");
-      return res.json();
-    })
-    .then(data => {
-      if (data.length === 0) {
-        alert("Endereço não encontrado!");
-        document.getElementById("destino").innerHTML = "Não encontrado";
-        return;
+
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Otimizando Trajeto...`;
+
+    // 2. Montar requisição OSRM Trip API
+    const stringCoords = localizacoes.map(l => `${l.lng},${l.lat}`).join(';');
+    
+    // source=first fixa a partida no 1º endereço informado
+    // roundtrip=false indica ida sem retorno obrigatório à origem
+    const osrmUrl = `https://router.project-osrm.org/trip/v1/driving/${stringCoords}?overview=full&geometries=geojson&source=first&roundtrip=false`;
+
+    const response = await fetch(osrmUrl);
+    const data = await response.json();
+
+    if (data.code !== 'Ok' || !data.trips || data.trips.length === 0) {
+      throw new Error("Não foi possível traçar uma rota otimizada entre estes pontos.");
+    }
+
+    const trip = data.trips[0];
+    const waypointsOtimizados = data.waypoints;
+
+    // 3. Desenhar a rota no mapa
+    const routeGeoJSON = {
+      type: "Feature",
+      geometry: trip.geometry
+    };
+
+    rotaLayer = L.geoJSON(routeGeoJSON, {
+      style: {
+        color: "#d97706",
+        weight: 6,
+        opacity: 0.85
       }
+    }).addTo(mapa);
 
-      let local = data[0];
-      destino = [parseFloat(local.lat), parseFloat(local.lon)];
+    // 4. Inserir marcadores no mapa e atualizar a barra lateral na sequência correta
+    timeline.innerHTML = "";
+    const bounds = [];
 
-      // Atualiza nome curto do destino
-      let nomeCurto = local.display_name.split(',')[0];
-      document.getElementById("destino").innerHTML = nomeCurto;
+    // Ordenar pontos conforme indicação do algoritmo
+    const sequencia = waypointsOtimizados.map((wp) => {
+      return {
+        ordemOriginal: wp.waypoint_index,
+        dados: localizacoes[wp.waypoint_index]
+      };
+    });
 
-      if (cliente) {
-        mapa.removeLayer(cliente);
-      }
+    sequencia.forEach((item, index) => {
+      const coord = item.dados;
+      const numeroParada = index + 1;
 
-      cliente = L.marker(destino, {
-        icon: criarIconeTexto(`${nomeCurto} (Destino)`, "fa-solid fa-location-dot", false)
+      // Marcador no Mapa
+      const m = L.marker([coord.lat, coord.lng], {
+        icon: criarIconeTexto(`${numeroParada}. ${coord.displayName}`, "fa-solid fa-location-dot", false)
       }).addTo(mapa);
 
-      if (minhaPosicao) {
-        calcularRota(minhaPosicao, destino);
-        ultimaPosicaoRota = minhaPosicao;
-      } else {
-        mapa.setView(destino, 15);
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Falha na consulta de endereço.");
-      document.getElementById("destino").innerHTML = "Erro na busca";
+      markers.push(m);
+      bounds.push([coord.lat, coord.lng]);
+
+      // Item na Lista Lateral
+      const stepHTML = `
+        <div class="timeline-step">
+          <div class="marker-num">${numeroParada}</div>
+          <div class="content">
+            <h4>${coord.displayName}</h4>
+            <p>${index === 0 ? 'Ponto de Origem / Partida' : 'Parada da Rota Escolar'}</p>
+          </div>
+        </div>
+      `;
+      timeline.innerHTML += stepHTML;
     });
+
+    // Ajustar enquadramento do mapa
+    mapa.fitBounds(bounds, { padding: [40, 40] });
+
+    // Atualizar Telemetria
+    const distKm = (trip.distance / 1000).toFixed(1);
+    const tempoMin = Math.round(trip.duration / 60);
+
+    document.getElementById("dist").innerHTML = `${distKm} km`;
+    document.getElementById("etaTime").innerHTML = `${tempoMin} min`;
+    document.getElementById("qtdParadas").innerHTML = `${localizacoes.length} endereços`;
+
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Rota Inteligente`;
+  }
 }
 
-// CALCULAR ROTA COM OSRM
-function calcularRota(origem, destino) {
-  if (!origem || !destino) return;
-
-  let url = `https://router.project-osrm.org/route/v1/driving/${origem[1]},${origem[0]};${destino[1]},${destino[0]}?overview=full&geometries=geojson`;
-
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.routes || !data.routes.length) {
-        alert("Não foi possível calcular a rota para este local.");
-        return;
-      }
-
-      let rotaData = data.routes[0];
-      let pontos = rotaData.geometry.coordinates.map(p => [p[1], p[0]]);
-
-      if (rota) {
-        mapa.removeLayer(rota);
-      }
-
-      // Estilo da linha do mapa no tom roxo
-      rota = L.polyline(pontos, {
-        color: "#7c3aed",
-        weight: 5,
-        opacity: 0.8,
-        dashArray: '10, 10'
-      }).addTo(mapa);
-
-      mapa.fitBounds(rota.getBounds(), { padding: [50, 50] });
-
-      // Atualiza distância e estimativa de tempo
-      let distancia = rotaData.distance;
-      document.getElementById("dist").innerHTML = distancia < 1000 
-        ? distancia.toFixed(0) + " metros" 
-        : (distancia / 1000).toFixed(2) + " km";
-
-      let tempoMinutos = Math.round(rotaData.duration / 60);
-      document.getElementById("etaTime").innerHTML = tempoMinutos + " minutos";
-    })
-    .catch(err => {
-      console.error("Erro ao traçar rota OSRM:", err);
-    });
-}
-
-// BOTÃO MINHA LOCALIZAÇÃO
+// BOTAO CENTRALIZAR NO GPS
 document.getElementById("minhaLocalizacao").addEventListener("click", () => {
   if (minhaPosicao) {
-    mapa.setView(minhaPosicao, 17, { animate: true });
+    mapa.setView(minhaPosicao, 16, { animate: true });
   } else {
-    alert("Aguardando coordenadas de GPS...");
+    alert("Aguardando sinal de GPS da Van...");
   }
 });
 
-// Garante renderização correta em navegadores de celular ao abrir/redimensionar
+// Redimensionamento de janela (Mobile / Celular)
 window.addEventListener('resize', () => {
   if (mapa) mapa.invalidateSize();
 });
-setTimeout(() => {
-  if (mapa) mapa.invalidateSize();
-}, 500);

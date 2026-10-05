@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rastreamento em Tempo Real</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Van Escolar - Rotas Inteligentes</title>
 
   <!-- Google Fonts & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,26 +20,15 @@
 
   <!-- CABEÇALHO SUPERIOR -->
   <header class="app-header">
-    <h1 class="header-title">Rastreamento em Tempo Real</h1>
+    <div class="header-brand">
+      <i class="fa-solid fa-van-shuttle logo-icon"></i>
+      <h1 class="header-title">Van Escolar | Rotas</h1>
+    </div>
 
     <div class="header-right">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" id="endereco" placeholder="Buscar entregas..." onkeypress="handleKeyPress(event)">
-        <button class="btn-buscar" onclick="buscarEndereco()" title="Calcular Rota">
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-
-      <button class="icon-btn" title="Notificações">
-        <i class="fa-regular fa-bell"></i>
-        <span class="badge"></span>
-      </button>
-
       <div class="user-profile">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" alt="Avatar" class="avatar">
-        <span class="user-name">Carlos H.</span>
-        <i class="fa-solid fa-chevron-down arrow"></i>
+        <i class="fa-solid fa-circle-user avatar-icon"></i>
+        <span class="user-name">Minha Perua</span>
       </div>
     </div>
   </header>
@@ -53,8 +42,8 @@
 
       <!-- Card flutuante: Estimativa -->
       <div class="eta-card">
-        <span class="eta-label">CHEGADA ESTIMADA EM</span>
-        <h2 class="eta-time" id="etaTime">15 minutos</h2>
+        <span class="eta-label">TEMPO TOTAL ESTIMADO</span>
+        <h2 class="eta-time" id="etaTime">-- min</h2>
       </div>
 
       <!-- Botão de centralizar no GPS -->
@@ -63,56 +52,57 @@
       </button>
     </section>
 
-    <!-- PAINEL LATERAL DE DETALHES DA ENTREGA -->
+    <!-- PAINEL LATERAL DE GERENCIAMENTO DE ALUNOS E ROTA -->
     <aside class="sidebar-details">
 
-      <!-- Informações do Pedido -->
       <div class="order-header">
-        <span class="badge-express">ENTREGA EXPRESSA</span>
-        <h2 class="order-id">Pedido #LM-2847</h2>
-        <p class="order-meta">Criado hoje às 14:00</p>
+        <span class="badge-express"><i class="fa-solid fa-route"></i> OTIMIZADOR DE TRAJETO</span>
+        <h2 class="order-id">Mapear Alunos</h2>
+        <p class="order-meta">Defina a partida e as paradas das crianças</p>
+      </div>
+
+      <!-- FORMULÁRIO DE ENDEREÇOS DAS CRIANÇAS -->
+      <div class="inputs-container">
+        <div class="input-group">
+          <label><i class="fa-solid fa-house-user"></i> Ponto de Partida / Garagem</label>
+          <input type="text" class="input-endereco" placeholder="Ex: Rua A, 123, São Paulo" value="">
+        </div>
+
+        <div class="input-group">
+          <label><i class="fa-solid fa-child"></i> Aluno 1 (Endereço)</label>
+          <input type="text" class="input-endereco" placeholder="Ex: Rua B, 456, São Paulo" value="">
+        </div>
+
+        <div class="input-group">
+          <label><i class="fa-solid fa-child"></i> Aluno 2 (Endereço)</label>
+          <input type="text" class="input-endereco" placeholder="Ex: Rua C, 789, São Paulo" value="">
+        </div>
+
+        <div class="input-group">
+          <label><i class="fa-solid fa-school"></i> Escola / Destino Final</label>
+          <input type="text" class="input-endereco" placeholder="Ex: Av. Escola, 1000, São Paulo" value="">
+        </div>
+
+        <button id="btnCalcular" class="btn-otimizar" onclick="processarRotaInteligente()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Rota Inteligente
+        </button>
       </div>
 
       <hr class="divider">
 
-      <!-- Card do Motorista / Veículo -->
-      <div class="driver-card">
-        <div class="driver-main">
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" alt="Carlos Silva" class="driver-photo">
-          <div class="driver-info">
-            <h3>Carlos Silva</h3>
-            <p><i class="fa-solid fa-star star-icon"></i> <strong>4.8</strong> Motorista Profissional</p>
-          </div>
-          <div class="driver-actions">
-            <button class="action-btn" title="Ligar"><i class="fa-solid fa-phone"></i></button>
-            <button class="action-btn active" title="Mensagem"><i class="fa-solid fa-comment"></i></button>
-          </div>
-        </div>
-
-        <div class="vehicle-info">
-          <div>
-            <span class="v-label">VEÍCULO / PLACA</span>
-            <span class="v-model">Fiat Fiorino Branca</span>
-          </div>
-          <span class="plate-tag">ABC-1234</span>
-        </div>
-      </div>
-
-      <hr class="divider">
-
-      <!-- Dados de Telemetria Dinâmicos -->
+      <!-- TELEMETRIA DA ROTA -->
       <div class="telemetry-grid">
         <div class="t-item">
-          <span>DESTINO</span>
-          <strong id="destino">Aguardando busca...</strong>
-        </div>
-        <div class="t-item">
-          <span>DISTÂNCIA</span>
+          <span>DISTÂNCIA TOTAL</span>
           <strong id="dist">-</strong>
         </div>
         <div class="t-item">
-          <span>VELOCIDADE</span>
+          <span>VELOCIDADE (GPS)</span>
           <strong id="vel">0 km/h</strong>
+        </div>
+        <div class="t-item">
+          <span>PARADAS</span>
+          <strong id="qtdParadas">0 endereços</strong>
         </div>
         <div class="t-item">
           <span>COORDENADAS</span>
@@ -122,51 +112,14 @@
 
       <hr class="divider">
 
-      <!-- Linha do Tempo (Status do Rastreamento) -->
-      <div class="timeline">
-        <div class="timeline-step completed">
-          <div class="marker"></div>
-          <div class="content">
-            <h4>Pedido Confirmado</h4>
-            <p>Aguardando coleta</p>
-          </div>
-          <span class="time">14:00</span>
-        </div>
+      <!-- SEQUÊNCIA OTIMIZADA DAS PARADAS -->
+      <div class="section-title">
+        <i class="fa-solid fa-list-ol"></i> Sequência Otimizada de Embarque
+      </div>
 
-        <div class="timeline-step active">
-          <div class="marker"></div>
-          <div class="content">
-            <h4>Motorista a Caminho</h4>
-            <p>Coleta em andamento</p>
-          </div>
-          <span class="time">14:15</span>
-        </div>
-
-        <div class="timeline-step">
-          <div class="marker"></div>
-          <div class="content">
-            <h4>Coleta Realizada</h4>
-            <p>Carga retirada com sucesso</p>
-          </div>
-          <span class="time">--:--</span>
-        </div>
-
-        <div class="timeline-step">
-          <div class="marker"></div>
-          <div class="content">
-            <h4>Em Trânsito</h4>
-            <p>A caminho do destino</p>
-          </div>
-          <span class="time">--:--</span>
-        </div>
-
-        <div class="timeline-step">
-          <div class="marker"></div>
-          <div class="content">
-            <h4>Entregue</h4>
-            <p>Confirmado com assinatura</p>
-          </div>
-          <span class="time">--:--</span>
+      <div class="timeline" id="timelineParadas">
+        <div class="timeline-empty">
+          Preencha os endereços acima e clique em <strong>Gerar Rota Inteligente</strong> para ordenar os pontos automaticamente.
         </div>
       </div>
 
