@@ -23,7 +23,7 @@ mapa = L.map("map", { zoomControl: false }).setView([-23.5505, -46.6333], 13);
 
 L.control.zoom({ position: 'topright' }).addTo(mapa);
 
-// Substitua esta linha no topo do seu script.js:
+// Camada gratuita OpenStreetMap Standard (Parâmetro Fixo)
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "© OpenStreetMap contributors"
@@ -47,7 +47,7 @@ navigator.geolocation.watchPosition(
       }).addTo(mapa);
       mapa.setView(minhaPosicao, 15);
 
-      // Preenche o Ponto de Partida automaticamente na primeira captura
+      // Preenche a Partida por GPS no primeiro sinal
       usarGpsNaPartida();
     } else {
       vanMarker.setLatLng(minhaPosicao);
@@ -63,7 +63,7 @@ navigator.geolocation.watchPosition(
   }
 );
 
-// CONVERTER COORDENADAS DO GPS EM ENDEREÇO (Geocodificação Reversa)
+// CONVERTER GPS EM ENDEREÇO
 async function usarGpsNaPartida() {
   if (!minhaPosicao) {
     alert("Aguardando sinal de GPS do celular...");
@@ -88,7 +88,114 @@ async function usarGpsNaPartida() {
   }
 }
 
-// CONFIGURAR AUTOCOMPLETE NOS CAMPOS DE TEXTO
+// BUSCA INTELIGENTE EM CAMADAS (ViaCEP -> Nominatim Estruturado -> Texto Livre)
+async function consultarEnderecoComViaCEP(enderecoText, numeroText) {
+  let termo = enderecoText.trim();
+  const apenasNumeros = termo.replace(/\D/g, '');
+  const numLimpo = numeroText ? numeroText.trim() : '';
+
+  // 1. Se for um CEP válido (8 dígitos)
+  if (apenasNumeros.length === 8) {
+    try {
+      const viacepRes = await fetch(`https://viacep.com.br/ws/${apenasNumeros}/json/`);
+      const viaCepData = await viacepRes.json();
+
+      if (!viaCepData.erro) {
+        const rua = viaCepData.logradouro;
+        const cidade = viaCepData.localidade;
+        const uf = viaCepData.uf;
+        const bairro = viaCepData.bairro;
+
+        // 1ª Tentativa: Busca exata com Rua + Número + Cidade + UF
+        if (numLimpo) {
+          try {
+            const locExata = await geocodeNominatimEstruturado(rua, numLimpo, cidade, uf);
+            return {
+              lat: locExata.lat,
+              lng: locExata.lng,
+              displayName: `${rua}, ${numLimpo} - ${bairro}`
+            };
+          } catch (e) {
+            console.warn("Número exato não encontrado no mapa. Buscando centro da rua...");
+          }
+        }
+
+        // 2ª Tentativa (Fallback): Busca pelo centro da Rua + Cidade + UF
+        const locRua = await geocodeNominatimEstruturado(rua, '', cidade, uf);
+        return {
+          lat: locRua.lat,
+          lng: locRua.lng,
+          displayName: `${rua}${numLimpo ? ', ' + numLimpo : ''} - ${bairro}`
+        };
+      }
+    } catch (e) {
+      console.warn("Erro no ViaCEP, caindo para busca direta de texto:", e);
+    }
+  }
+
+  // 2. Se não for CEP ou falhar o ViaCEP, tenta busca direta por texto
+  return await geocodeTextoLivre(termo, numLimpo);
+}
+
+// CONSULTA ESTRUTURADA NO NOMINATIM
+async function geocodeNominatimEstruturado(rua, numero, cidade, uf) {
+  const streetQuery = numero ? `${numero} ${rua}` : rua;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(streetQuery)}&city=${encodeURIComponent(cidade)}&state=${encodeURIComponent(uf)}&country=Brazil&limit=1&email=vanescolar@exemplo.com`;
+  
+  const res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+  if (!res.ok) throw new Error("Erro de conexão com o serviço de mapas.");
+  
+  const data = await res.json();
+  if (data && data.length > 0) {
+    return {
+      lat: parseFloat(data[0].lat),
+      lng: parseFloat(data[0].lon)
+    };
+  }
+  
+  // Se falhou com o número, tenta só a rua no modo estruturado
+  if (numero) {
+    return await geocodeNominatimEstruturado(rua, '', cidade, uf);
+  }
+
+  throw new Error(`Rua não localizada no mapa: "${rua}"`);
+}
+
+// BUSCA POR TEXTO LIVRE (FALLBACK FINAL)
+async function geocodeTextoLivre(termo, numero) {
+  const queryCompleta = numero ? `${termo}, ${numero}` : termo;
+  let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryCompleta)}&countrycodes=br&limit=1&email=vanescolar@exemplo.com`;
+
+  let res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+  let data = await res.json();
+
+  if (data && data.length > 0) {
+    return {
+      lat: parseFloat(data[0].lat),
+      lng: parseFloat(data[0].lon),
+      displayName: data[0].display_name.split(',')[0]
+    };
+  }
+
+  // Tenta sem o número se falhar com o número
+  if (numero) {
+    url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termo)}&countrycodes=br&limit=1&email=vanescolar@exemplo.com`;
+    res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+    data = await res.json();
+
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        displayName: `${data[0].display_name.split(',')[0]}, ${numero}`
+      };
+    }
+  }
+
+  throw new Error(`Endereço não localizado: "${termo}"`);
+}
+
+// AUTOCOMPLETE DE ENDEREÇOS E CEPS
 document.addEventListener("DOMContentLoaded", () => {
   const inputs = document.querySelectorAll(".input-endereco");
 
@@ -99,26 +206,62 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", (e) => {
       clearTimeout(debounceTimer);
       const query = e.target.value.trim();
+      const apenasNumeros = query.replace(/\D/g, '');
+
+      if (apenasNumeros.length === 8) {
+        debounceTimer = setTimeout(() => buscarViaCEPSugestao(apenasNumeros, suggestionsBox, input), 200);
+        return;
+      }
 
       if (query.length < 3) {
         suggestionsBox.style.display = "none";
         return;
       }
 
-      // Aguarda o usuário parar de digitar por 350ms para disparar a busca
-      debounceTimer = setTimeout(() => {
-        buscarSugestoes(query, suggestionsBox, input);
-      }, 350);
+      debounceTimer = setTimeout(() => buscarSugestoes(query, suggestionsBox, input), 350);
     });
   });
 
-  // Esconder caixas de sugestão ao clicar fora
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".autocomplete-wrapper")) {
       document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none");
     }
   });
 });
+
+// BUSCA RÁPIDA DE SUGESTÃO POR CEP (ViaCEP)
+async function buscarViaCEPSugestao(cep, boxElement, inputElement) {
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+
+    boxElement.innerHTML = "";
+
+    if (data.erro) {
+      boxElement.style.display = "none";
+      return;
+    }
+
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.innerHTML = `<strong><i class="fa-solid fa-envelope"></i> CEP:</strong> ${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`;
+
+    div.addEventListener("click", () => {
+      inputElement.value = `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`;
+      boxElement.style.display = "none";
+      
+      // Foca automaticamente no campo do número
+      const inputRow = inputElement.closest(".input-row");
+      const inputNum = inputRow.querySelector(".input-numero");
+      if (inputNum) inputNum.focus();
+    });
+
+    boxElement.appendChild(div);
+    boxElement.style.display = "block";
+  } catch (err) {
+    boxElement.style.display = "none";
+  }
+}
 
 // BUSCAR SUGESTÕES VIA NOMINATIM
 async function buscarSugestoes(query, boxElement, inputElement) {
@@ -142,6 +285,11 @@ async function buscarSugestoes(query, boxElement, inputElement) {
       div.addEventListener("click", () => {
         inputElement.value = item.display_name;
         boxElement.style.display = "none";
+
+        // Foca automaticamente no campo do número
+        const inputRow = inputElement.closest(".input-row");
+        const inputNum = inputRow.querySelector(".input-numero");
+        if (inputNum) inputNum.focus();
       });
 
       boxElement.appendChild(div);
@@ -153,53 +301,46 @@ async function buscarSugestoes(query, boxElement, inputElement) {
   }
 }
 
-// CONSULTA DE COORDENADAS VIA NOMINATIM
-async function geocode(endereco) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&email=vanescolar@exemplo.com`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
-  
-  if (!res.ok) throw new Error("Erro de comunicação com o servidor de endereços.");
-  const data = await res.json();
-  
-  if (data && data.length > 0) {
-    return {
-      lat: parseFloat(data[0].lat),
-      lng: parseFloat(data[0].lon),
-      displayName: data[0].display_name.split(',')[0]
-    };
-  }
-  throw new Error(`Endereço não encontrado: "${endereco}"`);
-}
-
-// LIMPAR ELEMENTOS DO MAPA
 function limparMapa() {
   if (rotaLayer) mapa.removeLayer(rotaLayer);
   markers.forEach(m => mapa.removeLayer(m));
   markers = [];
 }
 
-// PROCESSAR ROTA INTELIGENTE (OSRM TRIP API)
+// PROCESSAR ROTA INTELIGENTE
 async function processarRotaInteligente() {
   const btn = document.getElementById("btnCalcular");
   const timeline = document.getElementById("timelineParadas");
-  
-  const inputs = Array.from(document.querySelectorAll(".input-endereco"));
-  const enderecosText = inputs.map(i => i.value.trim()).filter(v => v !== "");
 
-  if (enderecosText.length < 2) {
+  const rows = Array.from(document.querySelectorAll(".input-group"));
+  const pontos = [];
+
+  rows.forEach(row => {
+    const inputEnd = row.querySelector(".input-endereco");
+    const inputNum = row.querySelector(".input-numero");
+
+    if (inputEnd && inputEnd.value.trim() !== "") {
+      pontos.push({
+        endereco: inputEnd.value.trim(),
+        numero: inputNum ? inputNum.value.trim() : ''
+      });
+    }
+  });
+
+  if (pontos.length < 2) {
     alert("Preencha pelo menos o Ponto de Partida e um Endereço para otimizar.");
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Geocodificando...`;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Localizando endereços...`;
 
   limparMapa();
 
   try {
     const localizacoes = [];
-    for (let end of enderecosText) {
-      const loc = await geocode(end);
+    for (let p of pontos) {
+      const loc = await consultarEnderecoComViaCEP(p.endereco, p.numero);
       localizacoes.push(loc);
     }
 
@@ -282,7 +423,7 @@ async function processarRotaInteligente() {
   }
 }
 
-// BOTAO CENTRALIZAR NO GPS
+// RECENTRALIZAR GPS
 document.getElementById("minhaLocalizacao").addEventListener("click", () => {
   if (minhaPosicao) {
     mapa.setView(minhaPosicao, 16, { animate: true });
@@ -291,7 +432,7 @@ document.getElementById("minhaLocalizacao").addEventListener("click", () => {
   }
 });
 
-// REDIMENSIONAMENTO DE JANELA
+// REDIMENSIONAMENTO MOBILE
 window.addEventListener('resize', () => {
   if (mapa) mapa.invalidateSize();
 });

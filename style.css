@@ -172,7 +172,7 @@ html, body {
   margin-top: 2px;
 }
 
-/* FORMULÁRIO E AUTOCOMPLETE */
+/* FORMULÁRIO E INPUTS LADO A LADO */
 .inputs-container {
   margin-top: 16px;
   display: flex;
@@ -188,9 +188,31 @@ html, body {
   margin-bottom: 4px;
 }
 
-.input-with-btn {
+.input-row {
   display: flex;
   gap: 6px;
+  align-items: center;
+}
+
+.flex-grow {
+  flex: 1;
+}
+
+.input-numero {
+  width: 65px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  text-align: center;
+  font-weight: 600;
+  transition: border-color 0.2s;
+}
+
+.input-numero:focus {
+  border-color: var(--primary-dark);
 }
 
 .btn-gps {
@@ -216,7 +238,6 @@ html, body {
 
 .autocomplete-wrapper {
   position: relative;
-  width: 100%;
 }
 
 .input-endereco {

@@ -58,46 +58,60 @@
       <div class="order-header">
         <span class="badge-express"><i class="fa-solid fa-route"></i> OTIMIZADOR DE TRAJETO</span>
         <h2 class="order-id">Mapear Alunos</h2>
-        <p class="order-meta">Defina a partida e as paradas das crianças</p>
+        <p class="order-meta">Defina a partida, endereços e números das residências</p>
       </div>
 
-      <!-- FORMULÁRIO DE ENDEREÇOS DAS CRIANÇAS -->
+      <!-- FORMULÁRIO COM CAMPO DE NÚMERO -->
       <div class="inputs-container">
-        <!-- Ponto de Partida com GPS Automático -->
+        
+        <!-- Ponto de Partida -->
         <div class="input-group">
-          <label><i class="fa-solid fa-location-dot"></i> Ponto de Partida / Sua Localização</label>
-          <div class="input-with-btn">
-            <div class="autocomplete-wrapper">
-              <input type="text" id="pontoPartida" class="input-endereco" placeholder="Buscando sua localização..." autocomplete="off">
-              <div class="suggestions-box" id="suggestions-pontoPartida"></div>
+          <label><i class="fa-solid fa-location-dot"></i> Ponto de Partida / Garagem</label>
+          <div class="input-row">
+            <div class="autocomplete-wrapper flex-grow">
+              <input type="text" id="pontoPartida" class="input-endereco" placeholder="Endereço ou CEP..." autocomplete="off">
+              <div class="suggestions-box"></div>
             </div>
+            <input type="text" class="input-numero" placeholder="Nº" title="Número do endereço">
             <button class="btn-gps" onclick="usarGpsNaPartida()" title="Usar minha localização atual">
               <i class="fa-solid fa-crosshairs"></i>
             </button>
           </div>
         </div>
 
+        <!-- Aluno 1 -->
         <div class="input-group">
           <label><i class="fa-solid fa-child"></i> Aluno 1 (Endereço)</label>
-          <div class="autocomplete-wrapper">
-            <input type="text" class="input-endereco" placeholder="Digite a rua ou número..." autocomplete="off">
-            <div class="suggestions-box"></div>
+          <div class="input-row">
+            <div class="autocomplete-wrapper flex-grow">
+              <input type="text" class="input-endereco" placeholder="Endereço ou CEP..." autocomplete="off">
+              <div class="suggestions-box"></div>
+            </div>
+            <input type="text" class="input-numero" placeholder="Nº" title="Número da casa">
           </div>
         </div>
 
+        <!-- Aluno 2 -->
         <div class="input-group">
           <label><i class="fa-solid fa-child"></i> Aluno 2 (Endereço)</label>
-          <div class="autocomplete-wrapper">
-            <input type="text" class="input-endereco" placeholder="Digite a rua ou número..." autocomplete="off">
-            <div class="suggestions-box"></div>
+          <div class="input-row">
+            <div class="autocomplete-wrapper flex-grow">
+              <input type="text" class="input-endereco" placeholder="Endereço ou CEP..." autocomplete="off">
+              <div class="suggestions-box"></div>
+            </div>
+            <input type="text" class="input-numero" placeholder="Nº" title="Número da casa">
           </div>
         </div>
 
+        <!-- Escola / Destino Final -->
         <div class="input-group">
           <label><i class="fa-solid fa-school"></i> Escola / Destino Final</label>
-          <div class="autocomplete-wrapper">
-            <input type="text" class="input-endereco" placeholder="Digite o nome da escola..." autocomplete="off">
-            <div class="suggestions-box"></div>
+          <div class="input-row">
+            <div class="autocomplete-wrapper flex-grow">
+              <input type="text" class="input-endereco" placeholder="Endereço da escola..." autocomplete="off">
+              <div class="suggestions-box"></div>
+            </div>
+            <input type="text" class="input-numero" placeholder="Nº" title="Número da escola">
           </div>
         </div>
 
@@ -137,7 +151,7 @@
 
       <div class="timeline" id="timelineParadas">
         <div class="timeline-empty">
-          Preencha os endereços acima e clique em <strong>Gerar Rota Inteligente</strong> para ordenar os pontos automaticamente.
+          Preencha os endereços e números acima para calcular a sequência exata.
         </div>
       </div>
 
