@@ -3,6 +3,7 @@ let vanMarker;
 let markers = [];
 let rotaLayer;
 let minhaPosicao = null;
+let debounceTimer;
 
 // Ícone Customizado para o Mapa
 function criarIconeTexto(texto, icone, ehVan = false) {
@@ -22,7 +23,7 @@ mapa = L.map("map", { zoomControl: false }).setView([-23.5505, -46.6333], 13);
 
 L.control.zoom({ position: 'topright' }).addTo(mapa);
 
-// Substitua o L.tileLayer atual por este no script.js:
+// Substitua esta linha no topo do seu script.js:
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "© OpenStreetMap contributors"
@@ -44,7 +45,10 @@ navigator.geolocation.watchPosition(
       vanMarker = L.marker(minhaPosicao, {
         icon: criarIconeTexto("Sua Van Escolar", "fa-solid fa-van-shuttle", true)
       }).addTo(mapa);
-      mapa.setView(minhaPosicao, 14);
+      mapa.setView(minhaPosicao, 15);
+
+      // Preenche o Ponto de Partida automaticamente na primeira captura
+      usarGpsNaPartida();
     } else {
       vanMarker.setLatLng(minhaPosicao);
     }
@@ -59,14 +63,104 @@ navigator.geolocation.watchPosition(
   }
 );
 
+// CONVERTER COORDENADAS DO GPS EM ENDEREÇO (Geocodificação Reversa)
+async function usarGpsNaPartida() {
+  if (!minhaPosicao) {
+    alert("Aguardando sinal de GPS do celular...");
+    return;
+  }
+
+  const inputPartida = document.getElementById("pontoPartida");
+  inputPartida.value = "Obtendo endereço atual...";
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${minhaPosicao[0]}&lon=${minhaPosicao[1]}&email=vanescolar@exemplo.com`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+    const data = await res.json();
+
+    if (data && data.display_name) {
+      inputPartida.value = data.display_name;
+    } else {
+      inputPartida.value = `${minhaPosicao[0].toFixed(5)}, ${minhaPosicao[1].toFixed(5)}`;
+    }
+  } catch (err) {
+    inputPartida.value = `${minhaPosicao[0].toFixed(5)}, ${minhaPosicao[1].toFixed(5)}`;
+  }
+}
+
+// CONFIGURAR AUTOCOMPLETE NOS CAMPOS DE TEXTO
+document.addEventListener("DOMContentLoaded", () => {
+  const inputs = document.querySelectorAll(".input-endereco");
+
+  inputs.forEach(input => {
+    const wrapper = input.closest(".autocomplete-wrapper");
+    const suggestionsBox = wrapper.querySelector(".suggestions-box");
+
+    input.addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      const query = e.target.value.trim();
+
+      if (query.length < 3) {
+        suggestionsBox.style.display = "none";
+        return;
+      }
+
+      // Aguarda o usuário parar de digitar por 350ms para disparar a busca
+      debounceTimer = setTimeout(() => {
+        buscarSugestoes(query, suggestionsBox, input);
+      }, 350);
+    });
+  });
+
+  // Esconder caixas de sugestão ao clicar fora
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".autocomplete-wrapper")) {
+      document.querySelectorAll(".suggestions-box").forEach(box => box.style.display = "none");
+    }
+  });
+});
+
+// BUSCAR SUGESTÕES VIA NOMINATIM
+async function buscarSugestoes(query, boxElement, inputElement) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&email=vanescolar@exemplo.com`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+    const data = await res.json();
+
+    boxElement.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      boxElement.style.display = "none";
+      return;
+    }
+
+    data.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "suggestion-item";
+      div.textContent = item.display_name;
+
+      div.addEventListener("click", () => {
+        inputElement.value = item.display_name;
+        boxElement.style.display = "none";
+      });
+
+      boxElement.appendChild(div);
+    });
+
+    boxElement.style.display = "block";
+  } catch (err) {
+    console.warn("Erro ao buscar sugestões:", err);
+  }
+}
+
 // CONSULTA DE COORDENADAS VIA NOMINATIM
 async function geocode(endereco) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1`;
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'VanEscolarRotaApp/1.0' }
-  });
-  if (!res.ok) throw new Error("Erro de comunicação com servidor de endereços.");
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&email=vanescolar@exemplo.com`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'VanEscolarApp/1.0' } });
+  
+  if (!res.ok) throw new Error("Erro de comunicação com o servidor de endereços.");
   const data = await res.json();
+  
   if (data && data.length > 0) {
     return {
       lat: parseFloat(data[0].lat),
@@ -84,7 +178,7 @@ function limparMapa() {
   markers = [];
 }
 
-// PROCESSAR ROTA INTELIGENTE (OSRM TRIP API - TSP)
+// PROCESSAR ROTA INTELIGENTE (OSRM TRIP API)
 async function processarRotaInteligente() {
   const btn = document.getElementById("btnCalcular");
   const timeline = document.getElementById("timelineParadas");
@@ -103,7 +197,6 @@ async function processarRotaInteligente() {
   limparMapa();
 
   try {
-    // 1. Converter endereços em coordenadas
     const localizacoes = [];
     for (let end of enderecosText) {
       const loc = await geocode(end);
@@ -112,54 +205,47 @@ async function processarRotaInteligente() {
 
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Otimizando Trajeto...`;
 
-    // 2. Montar requisição OSRM Trip API
     const stringCoords = localizacoes.map(l => `${l.lng},${l.lat}`).join(';');
-    
-    // source=first fixa a partida no 1º endereço informado
-    // roundtrip=false indica ida sem retorno obrigatório à origem
     const osrmUrl = `https://router.project-osrm.org/trip/v1/driving/${stringCoords}?overview=full&geometries=geojson&source=first&roundtrip=false`;
 
     const response = await fetch(osrmUrl);
-    const data = await response.json();
+    
+    if (!response.ok) {
+      const fallbackUrl = `https://routing.openstreetmap.de/routed-car/trip/v1/driving/${stringCoords}?overview=full&geometries=geojson&source=first&roundtrip=false`;
+      const fallbackRes = await fetch(fallbackUrl);
+      var data = await fallbackRes.json();
+    } else {
+      var data = await response.json();
+    }
 
-    if (data.code !== 'Ok' || !data.trips || data.trips.length === 0) {
-      throw new Error("Não foi possível traçar uma rota otimizada entre estes pontos.");
+    if (!data.trips || data.trips.length === 0) {
+      throw new Error("Não foi possível traçar a rota otimizada.");
     }
 
     const trip = data.trips[0];
     const waypointsOtimizados = data.waypoints;
 
-    // 3. Desenhar a rota no mapa
     const routeGeoJSON = {
       type: "Feature",
       geometry: trip.geometry
     };
 
     rotaLayer = L.geoJSON(routeGeoJSON, {
-      style: {
-        color: "#d97706",
-        weight: 6,
-        opacity: 0.85
-      }
+      style: { color: "#d97706", weight: 6, opacity: 0.85 }
     }).addTo(mapa);
 
-    // 4. Inserir marcadores no mapa e atualizar a barra lateral na sequência correta
     timeline.innerHTML = "";
     const bounds = [];
 
-    // Ordenar pontos conforme indicação do algoritmo
-    const sequencia = waypointsOtimizados.map((wp) => {
-      return {
-        ordemOriginal: wp.waypoint_index,
-        dados: localizacoes[wp.waypoint_index]
-      };
-    });
+    const sequencia = waypointsOtimizados.map((wp) => ({
+      ordemOriginal: wp.waypoint_index,
+      dados: localizacoes[wp.waypoint_index]
+    }));
 
     sequencia.forEach((item, index) => {
       const coord = item.dados;
       const numeroParada = index + 1;
 
-      // Marcador no Mapa
       const m = L.marker([coord.lat, coord.lng], {
         icon: criarIconeTexto(`${numeroParada}. ${coord.displayName}`, "fa-solid fa-location-dot", false)
       }).addTo(mapa);
@@ -167,7 +253,6 @@ async function processarRotaInteligente() {
       markers.push(m);
       bounds.push([coord.lat, coord.lng]);
 
-      // Item na Lista Lateral
       const stepHTML = `
         <div class="timeline-step">
           <div class="marker-num">${numeroParada}</div>
@@ -180,10 +265,8 @@ async function processarRotaInteligente() {
       timeline.innerHTML += stepHTML;
     });
 
-    // Ajustar enquadramento do mapa
     mapa.fitBounds(bounds, { padding: [40, 40] });
 
-    // Atualizar Telemetria
     const distKm = (trip.distance / 1000).toFixed(1);
     const tempoMin = Math.round(trip.duration / 60);
 
@@ -208,7 +291,7 @@ document.getElementById("minhaLocalizacao").addEventListener("click", () => {
   }
 });
 
-// Redimensionamento de janela (Mobile / Celular)
+// REDIMENSIONAMENTO DE JANELA
 window.addEventListener('resize', () => {
   if (mapa) mapa.invalidateSize();
 });

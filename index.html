@@ -33,7 +33,7 @@
     </div>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL (DASHBOARD) -->
+  <!-- CONTEÚDO PRINCIPAL -->
   <main class="dashboard-container">
 
     <!-- ÁREA DO MAPA -->
@@ -52,7 +52,7 @@
       </button>
     </section>
 
-    <!-- PAINEL LATERAL DE GERENCIAMENTO DE ALUNOS E ROTA -->
+    <!-- PAINEL LATERAL -->
     <aside class="sidebar-details">
 
       <div class="order-header">
@@ -63,24 +63,42 @@
 
       <!-- FORMULÁRIO DE ENDEREÇOS DAS CRIANÇAS -->
       <div class="inputs-container">
+        <!-- Ponto de Partida com GPS Automático -->
         <div class="input-group">
-          <label><i class="fa-solid fa-house-user"></i> Ponto de Partida / Garagem</label>
-          <input type="text" class="input-endereco" placeholder="Ex: Rua A, 123, São Paulo" value="">
+          <label><i class="fa-solid fa-location-dot"></i> Ponto de Partida / Sua Localização</label>
+          <div class="input-with-btn">
+            <div class="autocomplete-wrapper">
+              <input type="text" id="pontoPartida" class="input-endereco" placeholder="Buscando sua localização..." autocomplete="off">
+              <div class="suggestions-box" id="suggestions-pontoPartida"></div>
+            </div>
+            <button class="btn-gps" onclick="usarGpsNaPartida()" title="Usar minha localização atual">
+              <i class="fa-solid fa-crosshairs"></i>
+            </button>
+          </div>
         </div>
 
         <div class="input-group">
           <label><i class="fa-solid fa-child"></i> Aluno 1 (Endereço)</label>
-          <input type="text" class="input-endereco" placeholder="Ex: Rua B, 456, São Paulo" value="">
+          <div class="autocomplete-wrapper">
+            <input type="text" class="input-endereco" placeholder="Digite a rua ou número..." autocomplete="off">
+            <div class="suggestions-box"></div>
+          </div>
         </div>
 
         <div class="input-group">
           <label><i class="fa-solid fa-child"></i> Aluno 2 (Endereço)</label>
-          <input type="text" class="input-endereco" placeholder="Ex: Rua C, 789, São Paulo" value="">
+          <div class="autocomplete-wrapper">
+            <input type="text" class="input-endereco" placeholder="Digite a rua ou número..." autocomplete="off">
+            <div class="suggestions-box"></div>
+          </div>
         </div>
 
         <div class="input-group">
           <label><i class="fa-solid fa-school"></i> Escola / Destino Final</label>
-          <input type="text" class="input-endereco" placeholder="Ex: Av. Escola, 1000, São Paulo" value="">
+          <div class="autocomplete-wrapper">
+            <input type="text" class="input-endereco" placeholder="Digite o nome da escola..." autocomplete="off">
+            <div class="suggestions-box"></div>
+          </div>
         </div>
 
         <button id="btnCalcular" class="btn-otimizar" onclick="processarRotaInteligente()">
